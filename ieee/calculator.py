@@ -2,31 +2,34 @@ import math
 
 num = float(input("Enter a number: "))
 
+## ZERO CASE
+if num == 0:
+    print("0 00000000 00000000000000000000000")
+    exit()
+
 binary_int= [] ## LIST TO STORE INTEGER BINARY VALUES
 binary_decimal= [] ## LIST TO STORE DECIMAL BINARY VALUES
 
-decimal = num - math.floor(num) ## 5.75 - 5 = 0.75
-integer = math.floor(num) ## 5
+decimal = abs(num) - math.floor(abs(num)) ## 5.75 - 5 = 0.75
+integer = math.floor(abs(num)) ## 5
 
-# SINAL
-if num > 0:
-    sinal = 0 ## POSITIVE
-else:
-    sinal = 1 ## NEGATIVE
+# SIGNAL
+signal = 0 if num >= 0 else 1 ## 0 FOR POSITIVE, 1 FOR NEGATIVE
 
 ## BINARY FOR INTEGER PART
-while integer > 1:
-    rest_of_integer = integer % 2
-    result_of_integer = integer // 2
-    integer = result_of_integer
-    binary_int.append(rest_of_integer)
-binary_int.append(integer)
-
+if integer == 0:
+    binary_int.append(0)
+else:
+    while integer > 1:
+        rest_of_integer = integer % 2
+        integer //= 2
+        binary_int.append(rest_of_integer)
+    binary_int.append(integer)
 binary_int.reverse() ## REPLACE THE LIST TO GET THE RIGHT ORDER
 
 ## BINARY FOR DECIMAL PART
 count = 0
-while decimal != 0 and count < 5: ## LIMIT TO 5 DECIMAL PLACES
+while decimal != 0 and count < 30: ## LIMIT TO 30 DECIMAL PLACES
     result_of_decimal = decimal * 2
     if result_of_decimal >= 1:
         binary_decimal.append(1)
@@ -36,38 +39,39 @@ while decimal != 0 and count < 5: ## LIMIT TO 5 DECIMAL PLACES
         decimal = result_of_decimal
     count += 1
 
-## BINARY FOR STRING
-binary_str = ''.join(str(bit) for bit in binary_int) + '.' + ''.join(str(bit) for bit in binary_decimal)
+## FULL BINARY NUMBER
+full_binary = binary_int + binary_decimal
 
-## NORMALIZE THE NUMBER.   ## FORMAT IEEE 754 -> 1.xxxxx * 2^E
-binary_str = binary_str.replace('.', '')  ## REMOVE THE DOT
-binary_str = '1.' + binary_str[1:] ## ADD THE DOT AFTER THE FIRST 1
-exponent_real = math.floor(math.log2(num))  ## REAL EXPONENT
-ieee = binary_str + ' * 2^' + str(exponent_real) ## IEEE 754 FORMAT
+## FIND THE FIRST "1" TO NORMALIZE
+if 1 in binary_int:
+    first_one_index = binary_int.index(1)
+    exponent_real = len(binary_int) - first_one_index - 1
+    mantissa_bits = binary_int[first_one_index + 1:] + binary_decimal ## BITS AFTER THE FIRST "1"
+else:
+    first_one_index = binary_decimal.index(1)
+    exponent_real = -(first_one_index + 1)
+    mantissa_bits = binary_decimal[first_one_index + 1:] ## BITS AFTER THE FIRST "1"
 
 ## EXPONENTIAL BIAS
-bias = 127
+bias = 127 ## FOR 32 BITS
 exponent_biased = exponent_real + bias
-exponent= [] ## LIST TO STORE EXPONENT BINARY VALUES
-while exponent_biased > 1:
-    rest_of_exponent = exponent_biased % 2
-    result_of_exponent = exponent_biased // 2
-    exponent_biased = result_of_exponent
-    exponent.append(rest_of_exponent)
-exponent.append(exponent_biased)
-exponent.reverse() ## REPLACE THE LIST TO GET THE RIGHT ORDER
 
-## EXPONENT BINARY STRING
-exponent_str = ''.join(str(bit) for bit in exponent)
+## EXPONENT BINARY STRING (8 BITS)
+exponent= [] ## LIST TO STORE EXPONENT BINARY VALUES
+temp = exponent_biased
+while temp > 1:
+    exponent.append(temp % 2)
+    temp //= 2
+exponent.append(temp)
+exponent.reverse() ## REPLACE THE LIST TO GET THE RIGHT ORDER
+exponent_str = ''.join(str(bit) for bit in exponent).zfill(8) ## FILL WITH ZEROS TO THE LEFT TO GET 8 BITS 
 
 ## MANTISSA (23 BITS)
-mantissa = binary_str[2:] ## REMOVE '1.'
-if len(mantissa) < 23:
-    mantissa = mantissa + '0' * (23 - len(mantissa)) ## ADD ZEROS TO THE RIGHT
-else:
-    mantissa = mantissa[:23] ## LIMIT TO 23 BITS
+mantissa = ''.join(str(bit) for bit in mantissa_bits)
+mantissa = mantissa.ljust(23, '0')[:23] ## FILL WITH ZEROS TO THE RIGHT TO GET 23 BITS
 
 ## FINAL OUTPUT
-ieee32 = f"{sinal} {exponent_str} {mantissa}"
-print(ieee32)
+ieee_format = f"SIGNAL | EXPONENT | MANTISSA"
+ieee32 = f"{signal} {exponent_str} {mantissa}"
+print(f"{ieee_format}\n{ieee32}")
 
